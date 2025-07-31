@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Word Guessing Game - 6-Letter Words</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 20px;
+  }
+  #guessInput {
+    font-size: 1.5em;
+    text-transform: uppercase;
+    width: 180px;
+    letter-spacing: 10px;
+    text-align: center;
+  }
+  #guessBtn {
+    font-size: 1.2em;
+    margin-left: 10px;
+    padding: 5px 15px;
+  }
+  .row {
+    margin-top: 10px;
+  }
+  .letter {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    margin: 2px;
+    font-weight: bold;
+    font-size: 1.5em;
+    border: 2px solid #ccc;
+    text-transform: uppercase;
+  }
+  .correct {
+    background-color: #6aaa64; /* green */
+    color: white;
+    border-color: #6aaa64;
+  }
+  .present {
+    background-color: #c9b458; /* orange */
+    color: white;
+    border-color: #c9b458;
+  }
+  #loading {
+    margin-top: 20px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<h1>Word Guessing Game - 6-Letter Words</h1>
+<p>Guess the 6-letter word!</p>
+
+<input id="guessInput" maxlength="6" autofocus autocomplete="off" disabled />
+<button id="guessBtn" disabled>Guess</button>
+
+<div id="loading">Loading dictionary, please wait...</div>
+<div id="results"></div>
+
+<script>
+  const dictionaryUrl = 'https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt';
+  let validWordsSet = new Set();
+  let answer = "";
+  let maxGuesses = 6;
+  let guessesMade = 0;
+
+  const input = document.getElementById("guessInput");
+  const btn = document.getElementById("guessBtn");
+  const results = document.getElementById("results");
+  const loadingMsg = document.getElementById("loading");
+
+  // Fetch and load dictionary
+  fetch(dictionaryUrl)
+    .then(res => res.text())
+    .then(text => {
+      const allWords = text.split(/\r?\n/);
+      validWordsSet = new Set(allWords.filter(w => w.length === 6).map(w => w.toUpperCase()));
+      answer = Array.from(validWordsSet)[Math.floor(Math.random() * validWordsSet.size)];
+
+      loadingMsg.style.display = "none";
+      input.disabled = false;
+      btn.disabled = false;
+      input.focus();
+      console.log("Answer:", answer); // Optional: remove this in production
+    })
+    .catch(err => {
+      loadingMsg.textContent = "Failed to load dictionary.";
+      console.error(err);
+    });
+
+  btn.onclick = makeGuess;
+  input.addEventListener("keypress", e => {
+    if(e.key === "Enter") makeGuess();
+  });
+
+  function makeGuess() {
+    let guess = input.value.toUpperCase();
+    if(guess.length !== 6) {
+      alert("Please enter a 6-letter word.");
+      return;
+    }
+    if(!/^[A-Z]{6}$/.test(guess)) {
+      alert("Only letters A-Z allowed.");
+      return;
+    }
+    if(!validWordsSet.has(guess)) {
+      alert("Not a valid English word. Try again.");
+      return;
+    }
+
+    guessesMade++;
+    input.value = "";
+    input.focus();
+
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const answerLetterCount = {};
+    for(let ch of answer) {
+      answerLetterCount[ch] = (answerLetterCount[ch] || 0) + 1;
+    }
+
+    const letterColors = Array(6).fill("absent");
+    for(let i=0; i<6; i++) {
+      if(guess[i] === answer[i]) {
+        letterColors[i] = "correct";
+        answerLetterCount[guess[i]]--;
+      }
+    }
+
+    for(let i=0; i<6; i++) {
+      if(letterColors[i] === "correct") continue;
+      if(answer.includes(guess[i]) && answerLetterCount[guess[i]] > 0) {
+        letterColors[i] = "present";
+        answerLetterCount[guess[i]]--;
+      }
+    }
+
+    for(let i=0; i<6; i++) {
+      const span = document.createElement("span");
+      span.className = "letter";
+      span.textContent = guess[i];
+      if(letterColors[i] === "correct") span.classList.add("correct");
+      else if(letterColors[i] === "present") span.classList.add("present");
+      row.appendChild(span);
+    }
+    results.appendChild(row);
+
+    if(guess === answer) {
+      setTimeout(() => {
+        if(confirm("You won! Play again?")) {
+          resetGame();
+        }
+      }, 100);
+      btn.disabled = true;
+      input.disabled = true;
+    } else if (guessesMade >= maxGuesses) {
+      setTimeout(() => {
+        alert(`Game over! The word was: ${answer}`);
+        if(confirm("Play again?")) {
+          resetGame();
+        }
+      }, 100);
+      btn.disabled = true;
+      input.disabled = true;
+    }
+  }
+
+  function resetGame() {
+    guessesMade = 0;
+    results.innerHTML = "";
+    btn.disabled = false;
+    input.disabled = false;
+    input.value = "";
+    input.focus();
+    answer = Array.from(validWordsSet)[Math.floor(Math.random() * validWordsSet.size)];
+    console.log("Answer:", answer); // Optional
+  }
+</script>
+
+</body>
+</html>
