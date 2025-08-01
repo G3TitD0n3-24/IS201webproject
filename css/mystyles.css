@@ -30,6 +30,7 @@ a {
 .box {
     text-align: center;
     padding: 10px;
+    position: absolute;
 }
 
 .box1 {
